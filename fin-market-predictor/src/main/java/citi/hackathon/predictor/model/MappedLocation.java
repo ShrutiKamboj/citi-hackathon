@@ -16,4 +16,6 @@ public class MappedLocation {
     private String country;
     private Long woeid;
     private String countryCode;
+    private double Lat;
+    private double lang;
 }
