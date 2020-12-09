@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Properties;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -27,6 +28,7 @@ import citi.hackathon.predictor.model.TrendingTopics;
 import citi.hackathon.predictor.model.TweetDetails;
 import citi.hackathon.predictor.model.Tweets;
 import citi.hackathon.predictor.service.MarketPredictorService;
+import twitter4j.GeoLocation;
 import twitter4j.Location;
 import twitter4j.Query;
 import twitter4j.QueryResult;
@@ -36,6 +38,13 @@ import twitter4j.Trend;
 import twitter4j.Trends;
 import twitter4j.Twitter;
 import twitter4j.TwitterException;
+import edu.stanford.nlp.ling.CoreAnnotations;
+import edu.stanford.nlp.neural.rnn.RNNCoreAnnotations;
+import edu.stanford.nlp.pipeline.Annotation;
+import edu.stanford.nlp.pipeline.StanfordCoreNLP;
+import edu.stanford.nlp.sentiment.SentimentCoreAnnotations;
+import edu.stanford.nlp.trees.Tree;
+import edu.stanford.nlp.util.CoreMap;
 
 @Service
 public class MarketPredictorServiceImpl implements MarketPredictorService {
@@ -125,14 +134,20 @@ public class MarketPredictorServiceImpl implements MarketPredictorService {
 	}
 
 	@Override
-	public Tweets getTweets(String hashtag) {
+	public Tweets getTweets(String hashtag, double lat, double lng, int placeId) {
 		// TODO Auto-generated method stub
 		Tweets tweets = new Tweets();
+		double cumulativeSentiment = 0;
+		int noOfTweets = 0;
 		List<TweetDetails> tDetails = new ArrayList<TweetDetails>();
 		QueryResult result = null;
 		
 		Query query = new Query();
+		if (placeId != 1) {
+			query.setGeoCode(new GeoLocation(lat, lng), 1000.0, Query.MILES);
+		}
 		query.setCount(200);
+		query.setLocale("en");
 		query.setQuery(hashtag);
 		
 		try {
@@ -145,15 +160,66 @@ public class MarketPredictorServiceImpl implements MarketPredictorService {
 		result.getTweets().stream().forEach(a->System.out.println(a.getText()));
 		if (result != null) {
 			for (Status st : result.getTweets() ) {
-				TweetDetails td = new TweetDetails();
-				td.setDescription(st.getText());
-				tDetails.add(td);
+				if (st.getLang().equalsIgnoreCase("en")) {
+					String text = st.getText();
+					TweetDetails td = new TweetDetails();
+					td.setDescription(text);
+					int sentiment = getSentiment(text);
+					td.setSentiment(sentiment);
+					tDetails.add(td);
+					cumulativeSentiment += sentiment;
+					noOfTweets +=1;
+				}
 			}
 				
 		}
-		
+	//	System.out.println(cumulativeSentiment + " " + noOfTweets);
+		cumulativeSentiment = cumulativeSentiment/noOfTweets;
+	//	System.out.println(cumulativeSentiment + " " + noOfTweets);
+		int roundedSentiment = roundOff(cumulativeSentiment);
 		tweets.setTweetDetails(tDetails);
+		tweets.setSentimentValue(roundedSentiment);
 		return tweets;
+	}
+
+	private int roundOff(double cumulativeSentiment) {
+		// TODO Auto-generated method stub
+		if (cumulativeSentiment <= 0.5)
+			return 0;
+		else if (cumulativeSentiment > 0.5 && cumulativeSentiment <= 1.5)
+			return 1;
+		else if (cumulativeSentiment > 1.5 && cumulativeSentiment <= 2.5)
+			return 2;
+		else if (cumulativeSentiment > 2.5 && cumulativeSentiment <= 3.5)
+			return 3;
+		else if (cumulativeSentiment > 3.5 && cumulativeSentiment <= 4.5)
+			return 4;
+		else if (cumulativeSentiment > 4.5 && cumulativeSentiment <= 5)
+			return 5;
+		return 2;
+	}
+
+	private int getSentiment(String line) {
+		// TODO Auto-generated method stub
+		int sentiment=0;
+		Properties properties = new Properties();
+        properties.setProperty("annotators", "tokenize, ssplit, parse, sentiment");
+        StanfordCoreNLP stanfordCoreNLP = new StanfordCoreNLP(properties);
+        int mainSentiment = 0;
+        if (line != null && !line.isEmpty()) {
+            int longest = 0;
+            Annotation annotation = stanfordCoreNLP.process(line);
+            for (CoreMap sentence : annotation.get(CoreAnnotations.SentencesAnnotation.class)) {
+                Tree tree = sentence.get(SentimentCoreAnnotations.AnnotatedTree.class);
+                sentiment = RNNCoreAnnotations.getPredictedClass(tree);
+                String partText = sentence.toString();
+                if (partText.length() > longest) {
+                    mainSentiment = sentiment;
+                    longest = partText.length();
+                }
+            }
+        }
+		return sentiment;
 	}
 
 }

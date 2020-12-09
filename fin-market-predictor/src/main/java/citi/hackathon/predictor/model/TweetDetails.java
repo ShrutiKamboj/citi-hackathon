@@ -12,4 +12,5 @@ import lombok.Setter;
 public class TweetDetails {
 
 	private String description;
+	private int sentiment;
 }

@@ -39,8 +39,11 @@ public class MarketPredictorController {
 	
 	@RequestMapping(value = "/tweets/hashtag", method = RequestMethod.GET)
 	public ResponseEntity<Tweets> getTweets(
-			@RequestParam String hashtag) {
-		return new ResponseEntity<Tweets>(service.getTweets(hashtag), HttpStatus.OK);
+			@RequestParam String hashtag,
+			@RequestParam double lat,
+			@RequestParam double lng,
+			@RequestParam int placeId) {
+		return new ResponseEntity<Tweets>(service.getTweets(hashtag, lat, lng, placeId), HttpStatus.OK);
 	}
 	
 	//uncomment below code to test classification of tweets and result printed in console
