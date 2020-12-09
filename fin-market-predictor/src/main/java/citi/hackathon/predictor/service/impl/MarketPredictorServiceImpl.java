@@ -4,8 +4,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -25,8 +28,10 @@ import citi.hackathon.predictor.model.MappedLocation;
 import citi.hackathon.predictor.model.MappedTrends;
 import citi.hackathon.predictor.model.PlaceType;
 import citi.hackathon.predictor.model.TrendingTopics;
+import citi.hackathon.predictor.model.TweetClassificationResponse;
 import citi.hackathon.predictor.model.TweetDetails;
 import citi.hackathon.predictor.model.Tweets;
+import citi.hackathon.predictor.service.ClassificationService;
 import citi.hackathon.predictor.service.MarketPredictorService;
 import twitter4j.GeoLocation;
 import twitter4j.Location;
@@ -51,6 +56,11 @@ public class MarketPredictorServiceImpl implements MarketPredictorService {
 
 	@Autowired
 	Twitter twitter;
+	
+	@Autowired
+	ClassificationService classificationService;
+	
+	Map<String,Integer> categoryMap = new HashMap<String, Integer>();
 	
 	@Value("${google.api.key}")
 	String google_api_key;
@@ -134,7 +144,7 @@ public class MarketPredictorServiceImpl implements MarketPredictorService {
 	}
 
 	@Override
-	public Tweets getTweets(String hashtag, double lat, double lng, int placeId) {
+	public Tweets getTweets(String hashtag, double lat, double lng, int placeId) throws Exception {
 		// TODO Auto-generated method stub
 		Tweets tweets = new Tweets();
 		double cumulativeSentiment = 0;
@@ -169,17 +179,42 @@ public class MarketPredictorServiceImpl implements MarketPredictorService {
 					tDetails.add(td);
 					cumulativeSentiment += sentiment;
 					noOfTweets +=1;
+					TweetClassificationResponse response = classificationService.classifySingleTweet(text);
+					if (categoryMap.containsKey(response.getCalculatedCategory())) {
+						int value = categoryMap.get(response.getCalculatedCategory());
+						categoryMap.put(response.getCalculatedCategory(), value +1);
+					} else {
+						categoryMap.put(response.getCalculatedCategory(), 1);
+					}
 				}
 			}
 				
 		}
+		String category = getCategory(categoryMap);
 	//	System.out.println(cumulativeSentiment + " " + noOfTweets);
 		cumulativeSentiment = cumulativeSentiment/noOfTweets;
 	//	System.out.println(cumulativeSentiment + " " + noOfTweets);
 		int roundedSentiment = roundOff(cumulativeSentiment);
+		
 		tweets.setTweetDetails(tDetails);
 		tweets.setSentimentValue(roundedSentiment);
 		return tweets;
+	}
+
+	private String getCategory(Map<String, Integer> categoryMap) {
+		// TODO Auto-generated method stub
+		
+		String category = null;
+		int maxVal=0;
+		Set<String> keys = categoryMap.keySet();
+		for (String key:keys) {
+			System.out.println("Map values " + key + " " + categoryMap.get(key));
+			if (categoryMap.get(key)>maxVal) {
+				maxVal = categoryMap.get(key);
+				category = key;
+			}
+		}
+		return null;
 	}
 
 	private int roundOff(double cumulativeSentiment) {

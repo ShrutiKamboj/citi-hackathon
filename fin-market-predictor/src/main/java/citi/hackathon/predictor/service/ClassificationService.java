@@ -3,6 +3,7 @@ package citi.hackathon.predictor.service;
 import java.util.List;
 
 import citi.hackathon.predictor.model.TweetClassificationResponse;
+import citi.hackathon.predictor.model.TweetDetails;
 
 public interface ClassificationService {
 

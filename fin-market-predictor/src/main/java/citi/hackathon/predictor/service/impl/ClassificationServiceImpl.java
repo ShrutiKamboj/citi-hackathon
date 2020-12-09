@@ -2,6 +2,8 @@ package citi.hackathon.predictor.service.impl;
 
 import java.io.FileNotFoundException;
 import java.net.URISyntaxException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -45,15 +47,24 @@ public class ClassificationServiceImpl implements ClassificationService {
 	}
 
 	@Override
-	public TweetClassificationResponse classifySingleTweet(String tweetText) throws Exception {
+	public TweetClassificationResponse classifySingleTweet(String tweetText) {
 		String url = baseUrl + singleTweetClassifyEndPoint + tweetText;
 		HttpHeaders headers = new HttpHeaders();
 		headers.add("Authorization", apikey);
 		headers.add("Content-Type", "application/x-www-form-urlencoded");
 		HttpEntity<String> request = new HttpEntity<String>(headers);
-		ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, request, String.class);
-		if (!response.getStatusCode().equals(HttpStatus.OK)) {
-			throw new Exception(response.getBody());
+		ResponseEntity<String> response = null;
+		
+		try {
+			
+			String encodedUrl = URLEncoder.encode(url, StandardCharsets.UTF_8.toString());
+			response = restTemplate.exchange(encodedUrl, HttpMethod.GET, request, String.class);
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+		if (response != null && !response.getStatusCode().equals(HttpStatus.OK)) {
+			System.out.println("Not ok");
+			return null;
 		} else {
 			String tweetProcessedCategory = new JSONObject(response.getBody()).getString("top_class");
 			System.out.println("approximations: " + new JSONObject(response.getBody()).getString("classes"));
