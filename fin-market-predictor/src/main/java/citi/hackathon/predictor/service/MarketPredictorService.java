@@ -17,6 +17,6 @@ public interface MarketPredictorService {
 
 	public MappedTrends getTrendingTopics(int placeId);
 
-	public Tweets getTweets(String hashtag);
+	public Tweets getTweets(String hashtag, double lat, double lng, int placeId);
 
 }
