@@ -42,19 +42,19 @@ public class MarketPredictorController {
 			@RequestParam String hashtag,
 			@RequestParam double lat,
 			@RequestParam double lng,
-			@RequestParam int placeId) {
+			@RequestParam int placeId) throws Exception {
 		return new ResponseEntity<Tweets>(service.getTweets(hashtag, lat, lng, placeId), HttpStatus.OK);
 	}
 	
 	//uncomment below code to test classification of tweets and result printed in console
 	@RequestMapping(value = "/ankit", method = RequestMethod.GET)
-	public void TestClassifyTweets() {
-		/* 
-		 * this.classificationService.classifySingleTweet("Indian government is shit");
-		 * this.classificationService.classifyMultipleTweets(List.
-		 * of("Indian government releases shitty comments",
-		 * "Another person claimed that he is jesus christ"));
-		 */
+	public void TestClassifyTweets() throws Exception {
+		 
+		  this.classificationService.classifySingleTweet("Indian government is shit");
+		  this.classificationService.classifyMultipleTweets(List.
+		  of("Indian government releases shitty comments",
+		  "Another person claimed that he is jesus christ"));
+		 
 	}
 	
 }
