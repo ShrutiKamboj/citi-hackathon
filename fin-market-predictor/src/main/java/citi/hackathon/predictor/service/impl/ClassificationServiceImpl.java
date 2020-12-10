@@ -1,11 +1,17 @@
 package citi.hackathon.predictor.service.impl;
 
 import java.io.FileNotFoundException;
+import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,9 +21,11 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import citi.hackathon.predictor.configuration.TwitterConfig;
 import citi.hackathon.predictor.model.TweetClassificationResponse;
 import citi.hackathon.predictor.service.ClassificationService;
 import twitter4j.JSONArray;
@@ -40,6 +48,8 @@ public class ClassificationServiceImpl implements ClassificationService {
 
 	@Value("${dataset.classifyMultiTweetsEndPoint}")
 	String classifyMultiTweetsEndPoint;
+	
+	Map<String,Integer> categoryMap = new HashMap<String, Integer>();
 
 	public static void main(String[] args) throws URISyntaxException, FileNotFoundException {
 		ClassificationServiceImpl impl = new ClassificationServiceImpl();
@@ -47,8 +57,10 @@ public class ClassificationServiceImpl implements ClassificationService {
 	}
 
 	@Override
-	public TweetClassificationResponse classifySingleTweet(String tweetText) {
-		String url = baseUrl + singleTweetClassifyEndPoint + tweetText;
+	@Async
+	public TweetClassificationResponse classifySingleTweet(String tweetText) throws UnsupportedEncodingException, InterruptedException, ExecutionException {
+		String encodedtext = URLEncoder.encode(tweetText, StandardCharsets.UTF_8.toString());
+		String url = baseUrl + singleTweetClassifyEndPoint + encodedtext;
 		HttpHeaders headers = new HttpHeaders();
 		headers.add("Authorization", apikey);
 		headers.add("Content-Type", "application/x-www-form-urlencoded");
@@ -56,9 +68,7 @@ public class ClassificationServiceImpl implements ClassificationService {
 		ResponseEntity<String> response = null;
 		
 		try {
-			
-			String encodedUrl = URLEncoder.encode(url, StandardCharsets.UTF_8.toString());
-			response = restTemplate.exchange(encodedUrl, HttpMethod.GET, request, String.class);
+			response = restTemplate.exchange(url, HttpMethod.GET, request, String.class);
 		} catch (Exception ex) {
 			ex.printStackTrace();
 		}
@@ -69,16 +79,16 @@ public class ClassificationServiceImpl implements ClassificationService {
 			String tweetProcessedCategory = new JSONObject(response.getBody()).getString("top_class");
 			System.out.println("approximations: " + new JSONObject(response.getBody()).getString("classes"));
 			System.out.println("choosen cat: " + tweetProcessedCategory);
-			return TweetClassificationResponse
-					.builder()
-					.tweetText(tweetText)
-					.calculatedCategory(tweetProcessedCategory)
-					.build();
+			TweetClassificationResponse tcResponse = new TweetClassificationResponse();
+			tcResponse.setCalculatedCategory(tweetProcessedCategory);
+			tcResponse.setTweetText(tweetText);
+			return tcResponse;
 		}
 	}
 
 	@Override
 	public List<TweetClassificationResponse> classifyMultipleTweets(List<String> tweets) throws Exception {
+		tweets.stream().forEach(a-> System.out.println(a));
 		String url = baseUrl + classifyMultiTweetsEndPoint;
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_JSON);
@@ -94,7 +104,7 @@ public class ClassificationServiceImpl implements ClassificationService {
 			for (int i = 0; i < collection.length(); i++) {
 				String currText = collection.getJSONObject(i).getString("text");
 				String currCat = collection.getJSONObject(i).getString("top_class");
-				list.add(TweetClassificationResponse.builder().tweetText(currText).calculatedCategory(currCat).build());
+			//	list.add(TweetClassificationResponse.builder().tweetText(currText).calculatedCategory(currCat).build());
 			}
 			return list;
 		}
@@ -107,6 +117,20 @@ public class ClassificationServiceImpl implements ClassificationService {
 		});
 		
 		return new JSONObject().put("collection", jsonArray).toString();
+	}
+
+	@Override
+	@Async
+	public Future<HashMap<String, Integer>> getClassification(String text) throws UnsupportedEncodingException, InterruptedException, ExecutionException {
+		// TODO Auto-generated method stub
+		TweetClassificationResponse response = classifySingleTweet(text);
+		if (categoryMap.containsKey(response.getCalculatedCategory())) {
+			int value = categoryMap.get(response.getCalculatedCategory());
+			categoryMap.put(response.getCalculatedCategory(), value +1);
+		} else {
+			categoryMap.put(response.getCalculatedCategory(), 1);
+		}
+		return (Future<HashMap<String, Integer>>) categoryMap;
 	}
 
 }

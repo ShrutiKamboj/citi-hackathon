@@ -1,0 +1,9 @@
+{
+    "Label": ["Government", "Disaster", "Religion", "War"],
+    "data" : {
+    	"country": "Canada",
+    	"pastTrends": [60,50,60,60,65],
+    	"futurePredictions": [60,50,60,60,65]
+    }
+   
+}

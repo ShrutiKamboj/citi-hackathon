@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import citi.hackathon.predictor.model.MappedLocation;
 import citi.hackathon.predictor.model.MappedTrends;
+import citi.hackathon.predictor.model.PredictionsData;
 import citi.hackathon.predictor.model.Tweets;
 import citi.hackathon.predictor.service.ClassificationService;
 import citi.hackathon.predictor.service.MarketPredictorService;
@@ -55,6 +56,15 @@ public class MarketPredictorController {
 		  of("Indian government releases shitty comments",
 		  "Another person claimed that he is jesus christ"));
 		 
+	}
+	
+	@RequestMapping(value="/predictions/country/category", method = RequestMethod.GET) 
+	public ResponseEntity<PredictionsData> getPredictionsData(
+			@RequestParam int sentiment,
+			@RequestParam String country,
+			@RequestParam String category) {
+		
+		return new ResponseEntity<PredictionsData>(service.getPredictionData(sentiment, country, category), HttpStatus.OK);
 	}
 	
 }

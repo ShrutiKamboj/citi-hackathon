@@ -7,14 +7,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@AllArgsConstructor
-@NoArgsConstructor
 @Getter
 @Setter
-public class Tweets {
+@AllArgsConstructor
+@NoArgsConstructor
+public class PredictionsData {
 	
-	private List<TweetDetails> tweetDetails;
-	private int sentimentValue;
-	private String category;
-
+	List<String> label;
+	List<Integer> pastTrends;
+	List<Integer> futurePredictions;
 }

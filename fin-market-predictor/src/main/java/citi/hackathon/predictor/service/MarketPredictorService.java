@@ -9,6 +9,7 @@ import com.google.maps.errors.ApiException;
 
 import citi.hackathon.predictor.model.MappedLocation;
 import citi.hackathon.predictor.model.MappedTrends;
+import citi.hackathon.predictor.model.PredictionsData;
 import citi.hackathon.predictor.model.Tweets;
 
 public interface MarketPredictorService {
@@ -18,5 +19,7 @@ public interface MarketPredictorService {
 	public MappedTrends getTrendingTopics(int placeId);
 
 	public Tweets getTweets(String hashtag, double lat, double lng, int placeId) throws Exception;
+
+	public PredictionsData getPredictionData(int sentiment, String country, String category);
 
 }
